@@ -1,0 +1,12 @@
+# Menggunakan Cloud SDK untuk Deploy
+
+# [Optional] Change project ID gcp to Adoptify project
+gcloud config set project adoptify-407114
+you can check if already activated:
+gcloud config get-value project
+
+# Build and Push Image into GCP
+gcloud builds submit --config cloudbuild.yaml --substitutions _SERVICE_NAME=adoptify-api
+
+# Deploy
+gcloud run deploy adoptify-api --platform managed --region asia-southeast2 --image gcr.io/adoptify-407114/adoptify-api --allow-unauthenticated
