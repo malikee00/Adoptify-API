@@ -1,4 +1,5 @@
 import pandas as pd
+import sqlalchemy
 
 from fastapi import FastAPI
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -6,31 +7,39 @@ from sklearn.metrics.pairwise import cosine_similarity
 from db import connect_tcp_socket
 from dotenv import load_dotenv
 
+
 dotenv_path = "./.env"
 load_dotenv(dotenv_path=dotenv_path)
 
 app = FastAPI()
 
 
-@app.post("/api/pet-recommendations")
+@app.get("/api/pet-recommendations")
 async def pet_recommendations(petId: int, recomType: str):
-    # db = connect_tcp_socket()
-    # print("🍔🍔🔥 connection success")
-
+    db = connect_tcp_socket()
+    with db.connect() as conn:
+        data = pd.read_sql(
+            sqlalchemy.text(
+                "SELECT * FROM tbAdoptify"
+            ),
+            conn
+        )
+    print(data.keys())
     # data = pd.read_sql()
-    data = pd.read_csv("./data/Dataset Table - Dataset Adoptify.csv")
+    # data = pd.read_csv("./data/Dataset Table - Dataset Adoptify.csv")
     # data_original = data.copy()
 
     # jumlah_jenis_hewan = data.groupby("Jenis").size().reset_index(name="Jumlah")
-    data["Kontak"] = data["Kontak"].str.replace("'", "")
-    data.rename(columns={"ID": "UID"}, inplace=True)
+    
+    data["kontak"] = data["kontak"].str.replace("'", "")
+    # data.rename(columns={"ID": "UID"}, inplace=True)
     # RAS
 
     tf = TfidfVectorizer()
-    tf.fit(data["Ras"])
+    tf.fit(data["ras"])
     # tf.get_feature_names_out()
 
-    tfidf_matrix_ras = tf.fit_transform(data["Ras"])
+    tfidf_matrix_ras = tf.fit_transform(data["ras"])
     # tfidf_matrix_ras.shape
 
     # tfidf_matrix_ras.todense()
@@ -43,8 +52,9 @@ async def pet_recommendations(petId: int, recomType: str):
     #     cosine_sim_ras
 
     cosine_sim_df_ras = pd.DataFrame(
-        cosine_sim_ras, index=data["UID"], columns=data["UID"]
+        cosine_sim_ras, index=data["uid"], columns=data["uid"]
     )
+    print(cosine_sim_df_ras)
 
     #     print('shape :', cosine_sim_df_ras.shape)
 
@@ -63,11 +73,11 @@ async def pet_recommendations(petId: int, recomType: str):
 
     # Kesehatan
     tf = TfidfVectorizer()
-    tf.fit(data["Kesehatan"])
+    tf.fit(data["kesehatan"])
 
     #     tf.get_feature_names_out()
 
-    tfidf_matrix_kesehatan = tf.fit_transform(data["Kesehatan"])
+    tfidf_matrix_kesehatan = tf.fit_transform(data["kesehatan"])
     #     tfidf_matrix_kesehatan.shape
     #     tfidf_matrix_kesehatan.todense()
 
@@ -78,7 +88,7 @@ async def pet_recommendations(petId: int, recomType: str):
 
     cosine_sim_kesehatan = cosine_similarity(tfidf_matrix_kesehatan)
     cosine_sim_df_kesehatan = pd.DataFrame(
-        cosine_sim_kesehatan, index=data["UID"], columns=data["UID"]
+        cosine_sim_kesehatan, index=data["uid"], columns=data["uid"]
     )
     #     print('shape :', cosine_sim_df_kesehatan.shape)
     #     cosine_sim_df_kesehatan.sample(5, axis = 1).sample(10, axis = 0)
@@ -99,10 +109,10 @@ async def pet_recommendations(petId: int, recomType: str):
 
     # JENIS
     tf = TfidfVectorizer()
-    tf.fit(data["Jenis"])
+    tf.fit(data["jenis"])
     tf.get_feature_names_out()
 
-    tfidf_matrix_jenis = tf.fit_transform(data["Jenis"])
+    tfidf_matrix_jenis = tf.fit_transform(data["jenis"])
     #     tfidf_matrix_jenis.shape
 
     #     tfidf_matrix_jenis.todense()
@@ -113,7 +123,7 @@ async def pet_recommendations(petId: int, recomType: str):
 
     cosine_sim_jenis = cosine_similarity(tfidf_matrix_jenis)
     cosine_sim_df_jenis = pd.DataFrame(
-        cosine_sim_jenis, index=data["UID"], columns=data["UID"]
+        cosine_sim_jenis, index=data["uid"], columns=data["uid"]
     )
     #     print('shape :', cosine_sim_df_jenis.shape)
 
@@ -148,7 +158,7 @@ async def pet_recommendations(petId: int, recomType: str):
         df_result = kesehatan_hewan_recommendations(petId)
     if recomType == "JENIS":
         df_result = jenis_hewan_recommendations(petId)
-    # print("🍔🍔 ==>", result)
+        
 
     return {
         "status": 200,
